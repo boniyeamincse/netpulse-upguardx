@@ -34,7 +34,7 @@ export default function IncidentsPage() {
     const { data: incidents, isLoading, refetch, isRefetching } = useQuery({
         queryKey: ['incidents'],
         queryFn: async () => {
-            const response: any = await api.get('api/incidents').json()
+            const response: any = await api.get('incidents').json()
             return response.data as Incident[]
         },
         refetchInterval: 60000,

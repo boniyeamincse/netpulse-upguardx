@@ -57,7 +57,7 @@ export default function MonitorDetailPage() {
     const { data: monitor, isLoading, refetch, isRefetching } = useQuery({
         queryKey: ['monitor', id],
         queryFn: async () => {
-            const response: any = await api.get(`api/monitors/${id}`).json()
+            const response: any = await api.get(`monitors/${id}`).json()
             return response.data as Monitor
         },
         refetchInterval: 30000,

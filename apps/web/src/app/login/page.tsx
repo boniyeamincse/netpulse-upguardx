@@ -43,8 +43,8 @@ export default function LoginPage() {
         setIsSubmitting(true)
         setError(null)
         try {
-            const response: any = await api.post('api/auth/login', { json: values }).json()
-            login(response.data.token, response.data.user)
+            const response: any = await api.post('auth/login', { json: values }).json()
+            login(response.token, response.user)
         } catch (err: any) {
             const errorData = await err.response?.json()
             setError(errorData?.message || 'Invalid email or password')

@@ -97,7 +97,7 @@ export default function NewMonitorPage() {
         }
 
         try {
-            await api.post('api/monitors', { json: payload }).json()
+            await api.post('monitors', { json: payload }).json()
             router.push('/monitors')
         } catch (err: any) {
             const errorData = await err.response?.json()

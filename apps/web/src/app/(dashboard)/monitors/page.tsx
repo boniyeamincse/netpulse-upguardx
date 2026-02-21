@@ -34,7 +34,7 @@ export default function MonitorsPage() {
     const { data: monitors, isLoading, refetch, isRefetching } = useQuery({
         queryKey: ['monitors'],
         queryFn: async () => {
-            const response: any = await api.get('api/monitors').json()
+            const response: any = await api.get('monitors').json()
             return response.data as Monitor[]
         },
         refetchInterval: 30000, // Refresh every 30s

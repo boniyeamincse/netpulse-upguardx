@@ -27,8 +27,8 @@ export const createApp = async (): Promise<FastifyInstance> => {
     app.addHook('preHandler', withTenant)
 
     // Register Routes
-    await app.register(authRoutes, { prefix: '/v1/auth' })
-    await app.register(orgRoutes, { prefix: '/v1/orgs' })
+    await app.register(authRoutes, { prefix: '/api/v1/auth' })
+    await app.register(orgRoutes, { prefix: '/api/v1/orgs' })
 
     // Global Error Handler
     app.setErrorHandler((error: any, request, reply) => {
@@ -55,7 +55,7 @@ export const createApp = async (): Promise<FastifyInstance> => {
     })
 
     // Health Check
-    app.get('/health', async () => {
+    app.get('/api/v1/health', async () => {
         return { status: 'ok', timestamp: new Date().toISOString() }
     })
 
