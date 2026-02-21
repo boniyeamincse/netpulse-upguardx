@@ -1,13 +1,34 @@
-import fastify, { FastifyInstance } from 'fastify'
+import fastify, { FastifyInstance, FastifyRequest } from 'fastify'
 import { env } from './env'
+import { registerPlugins } from './plugins'
+import { authRoutes } from './routes/auth'
+import { orgRoutes } from './routes/orgs'
 
-export const createApp = (): FastifyInstance => {
+// Wrapper to provide tenant context to Prisma
+export const withTenant = async (request: FastifyRequest) => {
+    const user = request.user as { orgId: string } | undefined
+    if (user?.orgId) {
+        // tenantContext logic is applied in routes or decorators
+    }
+}
+
+export const createApp = async (): Promise<FastifyInstance> => {
     const app = fastify({
         logger: {
             level: env.LOG_LEVEL,
             transport: env.NODE_ENV === 'development' ? { target: 'pino-pretty' } : undefined,
         },
     })
+
+    // Register Plugins (Swagger, JWT, etc.)
+    await registerPlugins(app)
+
+    // Global Tenant Context Middleware
+    app.addHook('preHandler', withTenant)
+
+    // Register Routes
+    await app.register(authRoutes, { prefix: '/v1/auth' })
+    await app.register(orgRoutes, { prefix: '/v1/orgs' })
 
     // Global Error Handler
     app.setErrorHandler((error, request, reply) => {

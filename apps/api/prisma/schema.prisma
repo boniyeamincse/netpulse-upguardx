@@ -8,26 +8,119 @@ datasource db {
 }
 
 model Organization {
-  id          String   @id @default(uuid())
+  id          String        @id @default(uuid())
   name        String
-  slug        String   @unique
-  plan        String   @default("free")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  slug        String        @unique
+  plan        String        @default("free")
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
   users       User[]
+  monitors    Monitor[]
+  incidents   Incident[]
+  apiKeys     ApiKey[]
+  auditLogs   AuditLog[]
+  channels    AlertChannel[]
 
   @@map("organizations")
 }
 
 model User {
+  id               String       @id @default(uuid())
+  email            String       @unique
+  passwordHash     String
+  role             String       @default("viewer") // owner, admin, editor, viewer
+  organization     Organization @relation(fields: [organizationId], references: [id])
+  organizationId   String
+  twoFactorEnabled Boolean      @default(false)
+  twoFactorSecret  String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@map("users")
+}
+
+model ApiKey {
   id             String       @id @default(uuid())
-  email          String       @unique
-  passwordHash   String
-  role           String       @default("viewer")
+  name           String
+  key            String       @unique
   organization   Organization @relation(fields: [organizationId], references: [id])
   organizationId String
+  lastUsedAt     DateTime?
+  createdAt      DateTime     @default(now())
+
+  @@map("api_keys")
+}
+
+model Monitor {
+  id             String         @id @default(uuid())
+  name           String
+  type           String         // http, tcp, icmp, dns, ssl
+  target         String
+  interval       Int            @default(60) // in seconds
+  status         String         @default("pending") // up, down, degraded, pending, paused
+  lastCheckAt    DateTime?
+  organization   Organization   @relation(fields: [organizationId], references: [id])
+  organizationId String
+  checks         MonitorCheck[]
+  incidents      Incident[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@map("monitors")
+}
+
+model MonitorCheck {
+  id         String   @id @default(uuid())
+  monitor    Monitor  @relation(fields: [monitorId], references: [id], onDelete: Cascade)
+  monitorId  String
+  status     String
+  latency    Int      // in ms
+  message    String?
+  statusCode Int?
+  createdAt  DateTime @default(now())
+
+  @@index([monitorId, createdAt])
+  @@map("monitor_checks")
+}
+
+model Incident {
+  id             String       @id @default(uuid())
+  monitor        Monitor      @relation(fields: [monitorId], references: [id])
+  monitorId      String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  organizationId String
+  status         String       @default("open") // open, resolved
+  severity       String       @default("error") // critical, error, warning
+  startedAt      DateTime     @default(now())
+  resolvedAt     DateTime?
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
-  @@map("users")
+  @@map("incidents")
+}
+
+model AlertChannel {
+  id             String       @id @default(uuid())
+  name           String
+  type           String       // email, slack, discord, telegram, webhook
+  config         Json         // encrypted or structured config
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  organizationId String
+  createdAt      DateTime     @default(now())
+
+  @@map("alert_channels")
+}
+
+model AuditLog {
+  id             String       @id @default(uuid())
+  action         String
+  resource       String
+  resourceId     String?
+  actorId        String?      // User ID
+  payload        Json?
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  organizationId String
+  createdAt      DateTime     @default(now())
+
+  @@map("audit_logs")
 }
