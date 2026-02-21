@@ -31,23 +31,20 @@ NetPulse UpGuardX is an open-source, self-hostable uptime monitoring and securit
 8. Implement Global Error Handling and Logging (Pino).
 9. Setup Environment Variable validation (Zod).
 10. Create shared internal types and utility packages.
+11. **Docker Hub Integration**: Configure Dockerfiles and push scripts for `boniyeamin` account.
 
 ### Phase 11–25: Core API & Authentication
-11. Define Organizations and Users database models.
-12. Implement JWT-based Authentication (Access + Refresh tokens).
-13. Build Role-Based Access Control (RBAC) middleware.
-14. Create User Registration and Profile management.
-15. Implement Password hashing (bcrypt) and security best practices.
-16. Build Multi-tenant isolation at the database query level.
-17. Design and implement the Monitoring database schema.
-18. Implementation of Audit Logging service.
-19. Create API Key generation and validation logic.
-20. Build Rate limiting middleware via Redis.
-21. Implement 2FA (TOTP) backend logic.
-22. Create Organization management CRUD.
-23. Setup API Documentation (Swagger/OpenAPI).
-24. Implement Health check endpoints.
-25. Integration testing for Auth and RBAC.
+16. Implement Password hashing (bcrypt) and security best practices.
+17. Build Multi-tenant isolation at the database query level.
+18. Design and implement the Monitoring database schema.
+19. Implementation of Audit Logging service.
+20. Create API Key generation and validation logic.
+21. Build Rate limiting middleware via Redis.
+22. Implement 2FA (TOTP) backend logic.
+23. Create Organization management CRUD.
+24. Setup API Documentation (Swagger/OpenAPI).
+25. Implement Health check endpoints.
+26. Integration testing for Auth and RBAC.
 
 ### Phase 26–45: Worker Engine & Probing (Go)
 26. Initialize Go-based Worker service.
