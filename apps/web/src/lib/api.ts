@@ -13,5 +13,20 @@ export const api = ky.create({
                 }
             },
         ],
+        afterResponse: [
+            async (_request, _options, response) => {
+                // Handle authentication errors
+                if (response.status === 401) {
+                    if (typeof window !== 'undefined') {
+                        localStorage.removeItem('token')
+                        window.location.href = '/login'
+                    }
+                }
+            },
+        ],
+    },
+    retry: {
+        limit: 2,
+        methods: ['get', 'put', 'head', 'delete'],
     },
 })

@@ -20,21 +20,24 @@ model Organization {
   apiKeys     ApiKey[]
   auditLogs   AuditLog[]
   channels    AlertChannel[]
+  alertRules  AlertRule[]
 
   @@map("organizations")
 }
 
 model User {
-  id               String       @id @default(uuid())
-  email            String       @unique
-  passwordHash     String
-  role             String       @default("viewer") // owner, admin, editor, viewer
-  organization     Organization @relation(fields: [organizationId], references: [id])
-  organizationId   String
-  twoFactorEnabled Boolean      @default(false)
-  twoFactorSecret  String?
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
+  id                    String       @id @default(uuid())
+  email                 String       @unique
+  passwordHash          String
+  passwordResetToken    String?
+  passwordResetExpiry   DateTime?
+  role                  String       @default("viewer") // owner, admin, editor, viewer
+  organization          Organization @relation(fields: [organizationId], references: [id])
+  organizationId        String
+  twoFactorEnabled      Boolean      @default(false)
+  twoFactorSecret       String?
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
 
   @@map("users")
 }
@@ -64,6 +67,7 @@ model Monitor {
   metadata       Json?          // custom headers, body match, etc.
   checks         MonitorCheck[]
   incidents      Incident[]
+  alertRules     AlertRule[]
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
@@ -102,15 +106,47 @@ model Incident {
 }
 
 model AlertChannel {
-  id             String       @id @default(uuid())
+  id             String        @id @default(uuid())
   name           String
-  type           String       // email, slack, discord, telegram, webhook
-  config         Json         // encrypted or structured config
-  organization   Organization @relation(fields: [organizationId], references: [id])
+  type           String        // email, slack, discord, telegram, webhook
+  config         Json          // encrypted or structured config
+  isActive       Boolean       @default(true)
+  organization   Organization  @relation(fields: [organizationId], references: [id])
   organizationId String
-  createdAt      DateTime     @default(now())
+  alertRules     AlertRule[]
+  createdAt      DateTime      @default(now())
 
   @@map("alert_channels")
+}
+
+model AlertRule {
+  id             String        @id @default(uuid())
+  name           String
+  monitor        Monitor       @relation(fields: [monitorId], references: [id], onDelete: Cascade)
+  monitorId      String
+  alertChannel   AlertChannel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  channelId      String
+  triggerOn      String        @default("down") // down, degraded, up (on recovery)
+  enabled        Boolean       @default(true)
+  organization   Organization  @relation(fields: [organizationId], references: [id])
+  organizationId String
+  alertLogs      AlertLog[]
+  createdAt      DateTime      @default(now())
+
+  @@unique([monitorId, channelId])
+  @@map("alert_rules")
+}
+
+model AlertLog {
+  id          String     @id @default(uuid())
+  alertRule   AlertRule  @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  ruleId      String
+  status      String     @default("pending") // pending, sent, failed
+  sentAt      DateTime?
+  error       String?
+  createdAt   DateTime   @default(now())
+
+  @@map("alert_logs")
 }
 
 model AuditLog {

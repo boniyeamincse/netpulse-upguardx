@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -9,7 +10,6 @@ import {
     Card,
     CardContent,
     CardDescription,
-    CardFooter,
     CardHeader,
     CardTitle,
 } from '@/components/ui/card'
@@ -17,18 +17,24 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/components/auth-provider'
 import { api } from '@/lib/api'
-import { Loader2, ShieldCheck } from 'lucide-react'
+import { Loader2, ShieldCheck, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 
-const loginSchema = z.object({
+const registerSchema = z.object({
     email: z.string().email('Invalid email address'),
-    password: z.string().min(6, 'Password must be at least 6 characters'),
+    password: z.string().min(8, 'Password must be at least 8 characters'),
+    confirmPassword: z.string(),
+    orgName: z.string().min(2, 'Organization name must be at least 2 characters'),
+}).refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
 })
 
-type LoginFormValues = z.infer<typeof loginSchema>
+type RegisterFormValues = z.infer<typeof registerSchema>
 
-export default function LoginPage() {
+export default function RegisterPage() {
     const { login } = useAuth()
+    const router = useRouter()
     const [error, setError] = useState<string | null>(null)
     const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -36,19 +42,27 @@ export default function LoginPage() {
         register,
         handleSubmit,
         formState: { errors },
-    } = useForm<LoginFormValues>({
-        resolver: zodResolver(loginSchema),
+    } = useForm<RegisterFormValues>({
+        resolver: zodResolver(registerSchema),
     })
 
-    const onSubmit = async (values: LoginFormValues) => {
+    const onSubmit = async (values: RegisterFormValues) => {
         setIsSubmitting(true)
         setError(null)
         try {
-            const response: any = await api.post('auth/login', { json: values }).json()
+            const response: any = await api.post('auth/register', {
+                json: {
+                    email: values.email,
+                    password: values.password,
+                    orgName: values.orgName,
+                }
+            }).json()
+
             login(response.token, response.user)
+            router.push('/monitors')
         } catch (err: any) {
             const errorData = await err.response?.json()
-            setError(errorData?.message || 'Invalid email or password')
+            setError(errorData?.message || 'Failed to create account')
         } finally {
             setIsSubmitting(false)
         }
@@ -84,19 +98,16 @@ export default function LoginPage() {
                 </div>
             </div>
 
-            {/* Right Side - Login Form */}
+            {/* Right Side - Form */}
             <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12">
-                <Card className="w-full max-w-md border-none shadow-none bg-transparent lg:bg-white lg:dark:bg-slate-900 lg:shadow-xl lg:border lg:border-slate-200 lg:dark:border-slate-800">
-                    <CardHeader className="space-y-1">
-                        <div className="lg:hidden flex items-center gap-2 mb-4">
-                            <ShieldCheck className="h-6 w-6 text-emerald-500" />
-                            <span className="font-bold text-xl">NetPulse</span>
-                        </div>
-                        <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>
+                <Card className="w-full max-w-md">
+                    <CardHeader className="space-y-2">
+                        <CardTitle className="text-2xl">Create Account</CardTitle>
                         <CardDescription>
-                            Enter your credentials to access your dashboard
+                            Set up your organization and start monitoring.
                         </CardDescription>
                     </CardHeader>
+
                     <CardContent>
                         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                             {error && (
@@ -104,56 +115,86 @@ export default function LoginPage() {
                                     {error}
                                 </div>
                             )}
+
                             <div className="space-y-2">
-                                <Label htmlFor="email">Email</Label>
+                                <Label htmlFor="orgName">Organization Name</Label>
+                                <Input
+                                    id="orgName"
+                                    placeholder="Acme Corp"
+                                    {...register('orgName')}
+                                />
+                                {errors.orgName && (
+                                    <p className="text-xs text-destructive">{errors.orgName.message}</p>
+                                )}
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="email">Email Address</Label>
                                 <Input
                                     id="email"
                                     type="email"
-                                    placeholder="name@example.com"
+                                    placeholder="you@example.com"
                                     {...register('email')}
-                                    className={errors.email ? 'border-destructive' : ''}
                                 />
                                 {errors.email && (
                                     <p className="text-xs text-destructive">{errors.email.message}</p>
                                 )}
                             </div>
+
                             <div className="space-y-2">
-                                <div className="flex items-center justify-between">
-                                    <Label htmlFor="password">Password</Label>
-                                    <Button asChild variant="link" className="px-0 h-auto font-normal text-xs text-slate-500">
-                                        <Link href="/forgot-password">Forgot password?</Link>
-                                    </Button>
-                                </div>
+                                <Label htmlFor="password">Password</Label>
                                 <Input
                                     id="password"
                                     type="password"
+                                    placeholder="••••••••"
                                     {...register('password')}
-                                    className={errors.password ? 'border-destructive' : ''}
                                 />
                                 {errors.password && (
                                     <p className="text-xs text-destructive">{errors.password.message}</p>
                                 )}
                             </div>
-                            <Button type="submit" className="w-full h-10" disabled={isSubmitting}>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                                <Input
+                                    id="confirmPassword"
+                                    type="password"
+                                    placeholder="••••••••"
+                                    {...register('confirmPassword')}
+                                />
+                                {errors.confirmPassword && (
+                                    <p className="text-xs text-destructive">{errors.confirmPassword.message}</p>
+                                )}
+                            </div>
+
+                            <Button
+                                type="submit"
+                                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white"
+                                disabled={isSubmitting}
+                            >
                                 {isSubmitting ? (
                                     <>
                                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                        Signing in...
+                                        Creating Account...
                                     </>
                                 ) : (
-                                    'Sign In'
+                                    <>
+                                        Create Account
+                                        <ArrowRight className="ml-2 h-4 w-4" />
+                                    </>
                                 )}
                             </Button>
                         </form>
-                    </CardContent>
-                    <CardFooter className="flex flex-col space-y-4 border-t border-slate-100 dark:border-slate-800 pt-6 mt-6">
-                        <div className="text-sm text-slate-500 text-center">
-                            Don't have an account?{' '}
-                            <Button asChild variant="link" className="px-0 h-auto font-semibold text-emerald-600 dark:text-emerald-400">
-                                <Link href="/register">Sign up</Link>
-                            </Button>
+
+                        <div className="mt-4 text-center text-sm">
+                            <span className="text-slate-600 dark:text-slate-400">
+                                Already have an account?{' '}
+                            </span>
+                            <Link href="/login" className="text-emerald-600 hover:text-emerald-500 font-medium">
+                                Sign in
+                            </Link>
                         </div>
-                    </CardFooter>
+                    </CardContent>
                 </Card>
             </div>
         </div>

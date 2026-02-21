@@ -3,6 +3,8 @@ import { env } from './env'
 import { registerPlugins } from './plugins'
 import { authRoutes } from './routes/auth'
 import { orgRoutes } from './routes/orgs'
+import { alertRoutes } from './routes/alerts'
+import { monitorRoutes } from './routes/monitors'
 
 // Wrapper to provide tenant context to Prisma
 export const withTenant = async (request: FastifyRequest) => {
@@ -29,6 +31,8 @@ export const createApp = async (): Promise<FastifyInstance> => {
     // Register Routes
     await app.register(authRoutes, { prefix: '/api/v1/auth' })
     await app.register(orgRoutes, { prefix: '/api/v1/orgs' })
+    await app.register(alertRoutes, { prefix: '/api/v1' })
+    await app.register(monitorRoutes, { prefix: '/api/v1' })
 
     // Global Error Handler
     app.setErrorHandler((error: any, request, reply) => {

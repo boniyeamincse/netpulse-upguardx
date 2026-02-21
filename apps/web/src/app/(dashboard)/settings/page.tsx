@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
+import { TwoFactorSetup } from "@/components/two-factor-setup"
+import { AlertNotifications } from "@/components/alert-notifications"
 import {
     Building2,
     Users,
@@ -39,6 +41,10 @@ export default function SettingsPage() {
                     <TabsTrigger value="api" className="gap-2">
                         <Key className="h-4 w-4" />
                         API Keys
+                    </TabsTrigger>
+                    <TabsTrigger value="security" className="gap-2">
+                        <Shield className="h-4 w-4" />
+                        Security
                     </TabsTrigger>
                     <TabsTrigger value="notifications" className="gap-2">
                         <Bell className="h-4 w-4" />
@@ -156,16 +162,12 @@ export default function SettingsPage() {
                     </Card>
                 </TabsContent>
 
+                <TabsContent value="security" className="space-y-4">
+                    <TwoFactorSetup />
+                </TabsContent>
+
                 <TabsContent value="notifications" className="space-y-4">
-                    <Card className="border-dashed">
-                        <CardHeader>
-                            <CardTitle>Notification Channels</CardTitle>
-                            <CardDescription>Coming soon: Slack, Discord, and PagerDuty integration.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="h-48 flex items-center justify-center text-muted-foreground">
-                            Phase 61-65: Alerting & Integrations
-                        </CardContent>
-                    </Card>
+                    <AlertNotifications />
                 </TabsContent>
             </Tabs>
         </div>
