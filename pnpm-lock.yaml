@@ -29,6 +29,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@netpulse/types':
+        specifier: workspace:*
+        version: link:../../packages/types
       '@prisma/client':
         specifier: ^5.11.0
         version: 5.22.0(prisma@5.22.0)
