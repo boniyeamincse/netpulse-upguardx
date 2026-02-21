@@ -61,6 +61,7 @@ model Monitor {
   lastCheckAt    DateTime?
   organization   Organization   @relation(fields: [organizationId], references: [id])
   organizationId String
+  metadata       Json?          // custom headers, body match, etc.
   checks         MonitorCheck[]
   incidents      Incident[]
   createdAt      DateTime       @default(now())
@@ -77,6 +78,7 @@ model MonitorCheck {
   latency    Int      // in ms
   message    String?
   statusCode Int?
+  region     String?  // worker region (e.g. us-east-1)
   createdAt  DateTime @default(now())
 
   @@index([monitorId, createdAt])

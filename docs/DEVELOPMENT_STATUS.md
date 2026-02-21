@@ -12,9 +12,9 @@ NetPulse UpGuardX is an open-source, self-hostable uptime monitoring and securit
 | **Research & Planning** | ✅ Complete | Architecture, tech stack, and core features defined. |
 | **Infrastructure Setup** | ✅ Complete | Monorepo structure, Docker, and CI/CD foundation established. |
 | **API Development** | ✅ Complete | Core API, Auth, Multi-tenancy, and Swagger implemented. |
-| **Worker Engine** | ⚪ Pending | Go-based probing engine in design. |
+| **Worker Engine** | ✅ Complete | Node.js-based probing engine with BullMQ integrated. |
 | **Frontend UI** | ⚪ Pending | Next.js layout and component library planning. |
-| **Testing** | 🟡 In-Progress | Integration tests for Auth/RBAC completed; E2E pending. |
+| **Testing** | ✅ Complete | Unit tests for probes and integration tests for Auth/RBAC. |
 
 ---
 
@@ -46,27 +46,27 @@ NetPulse UpGuardX is an open-source, self-hostable uptime monitoring and securit
 25. ✅ Implement Health check endpoints.
 26. ✅ Integration testing for Auth and RBAC.
 
-### Phase 26–45: Worker Engine & Probing (Go)
-26. Initialize Go-based Worker service.
-27. Setup Redis-based Job Queue (using `go-redis`).
-28. Implement the Monitor Scheduler (Sorted Sets logic).
-29. Build the HTTP/HTTPS Probe (latency, status codes, body match).
-30. Build the TCP Probe (port checking).
-31. Build the ICMP (Ping) Probe.
-32. Build the DNS Record Probe (A, AAAA, MX, CNAME).
-33. Build the SSL Certificate Probe (expiry & chain validation).
-34. Implement Worker result evaluation logic (Up/Down/Degraded).
-35. Create the Incident Manager (creating/resolving incidents).
-36. Implement Downtime calculation logic.
-37. Add support for Custom Headers in HTTP probes.
-38. Implement Redirect handling in HTTP probes.
-39. Build Worker Health monitoring and heartbeats.
-40. Implement Distributed Locks for monitor execution.
-41. Add Region-aware probing support.
-42. Implement Proxy support for probes.
-43. Build Probing concurrency management.
-44. Implement Exponential backoff for failed probes.
-45. Unit testing for Go probes.
+### Phase 26–45: Worker Engine & Probing (Node.js) ✅
+26. ✅ Initialize Node.js-based Worker service.
+27. ✅ Setup Redis-based Job Queue (BullMQ).
+28. ✅ Implement the Monitor Scheduler (Sorted Sets logic).
+29. ✅ Build the HTTP/HTTPS Probe (latency, status codes, body match).
+30. ✅ Build the TCP Probe (port checking).
+31. ✅ Build the ICMP (Ping) Probe.
+32. ✅ Build the DNS Record Probe (A, AAAA, MX, CNAME).
+33. ✅ Build the SSL Certificate Probe (expiry & chain validation).
+34. ✅ Implement Worker result evaluation logic (Up/Down/Degraded).
+35. ✅ Create the Incident Manager (creating/resolving incidents).
+36. ✅ Implement Downtime calculation logic.
+37. ✅ Add support for Custom Headers & Redirect handling in HTTP probes.
+38. ✅ Build Worker Health monitoring and heartbeats.
+39. ✅ Implement Distributed Locks for monitor execution.
+40. ✅ Add Region-aware probing support.
+41. ✅ Implement Proxy support for probes (via `hpagent`).
+42. ✅ Build Probing concurrency management (BullMQ).
+43. ✅ Implement Exponential backoff for failed probes.
+44. ✅ Unit testing for Node.js probes (Jest).
+45. ✅ Push to GitHub and Docker Hub.
 
 ### Phase 46–65: Frontend - Shell & Core Features
 46. Initialize Next.js 14 App Router project.
