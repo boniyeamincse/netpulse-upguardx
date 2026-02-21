@@ -61,7 +61,7 @@ sudo usermod -aG docker $USER
 ### Clone & Install
 
 ```bash
-git clone https://github.com/your-org/netpulse-upguardx.git
+git clone https://github.com/boniyeamincse/netpulse-upguardx.git
 cd netpulse-upguardx
 
 # Install all JS/TS dependencies (workspaces)
