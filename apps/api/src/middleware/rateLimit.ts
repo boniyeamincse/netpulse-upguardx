@@ -6,7 +6,8 @@ const redis = new Redis(env.REDIS_URL)
 
 export const rateLimit = (limit: number, windowSeconds: number) => {
     return async (request: FastifyRequest, reply: FastifyReply) => {
-        const key = `ratelimit:${request.ip}:${request.routerPath}`
+        // In Fastify 5, routerPath is moved to routeOptions.url
+        const key = `ratelimit:${request.ip}:${request.routeOptions.url}`
 
         const count = await redis.incr(key)
 
@@ -22,6 +23,8 @@ export const rateLimit = (limit: number, windowSeconds: number) => {
                     message: 'Rate limit exceeded',
                 },
             })
+            // Fastify 5: Throwing stops the handler chain
+            throw new Error('Rate limit exceeded')
         }
     }
 }

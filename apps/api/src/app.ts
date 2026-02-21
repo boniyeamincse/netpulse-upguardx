@@ -8,7 +8,7 @@ import { orgRoutes } from './routes/orgs'
 export const withTenant = async (request: FastifyRequest) => {
     const user = request.user as { orgId: string } | undefined
     if (user?.orgId) {
-        // tenantContext logic is applied in routes or decorators
+        // tenantContext logic
     }
 }
 
@@ -31,7 +31,7 @@ export const createApp = async (): Promise<FastifyInstance> => {
     await app.register(orgRoutes, { prefix: '/v1/orgs' })
 
     // Global Error Handler
-    app.setErrorHandler((error, request, reply) => {
+    app.setErrorHandler((error: any, request, reply) => {
         app.log.error(error)
 
         if (error.validation) {
