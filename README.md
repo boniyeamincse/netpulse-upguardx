@@ -32,6 +32,10 @@ NetPulse UpGuardX is an open-source, self-hostable uptime monitoring and securit
 ### Docker (Recommended)
 
 ```bash
+# Pull images from Docker Hub
+docker pull boniyeamin/netpulse-upguardx-api:latest
+
+# Or build locally and start
 git clone https://github.com/boniyeamincse/netpulse-upguardx.git
 cd netpulse-upguardx
 cp .env.example .env

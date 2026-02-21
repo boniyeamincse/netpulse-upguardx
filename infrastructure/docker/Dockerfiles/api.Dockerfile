@@ -9,6 +9,7 @@ RUN npm install -g pnpm
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json turbo.json ./
 COPY packages/types/package.json ./packages/types/
 COPY apps/api/package.json ./apps/api/
+COPY packages/config ./packages/config/
 
 # Install dependencies
 RUN pnpm install --frozen-lockfile

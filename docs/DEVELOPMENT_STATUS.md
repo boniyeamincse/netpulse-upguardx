@@ -169,6 +169,20 @@ git commit -m "feat: add your feature description"
 git push origin feature/your-feature-name
 # Then open a Pull Request on GitHub.
 ```
+---
+
+## 🐳 Docker Hub Usage
+
+You can pull the latest pre-built images for the core components directly from Docker Hub:
+
+```bash
+# Pull the core API image
+docker pull boniyeamin/netpulse-upguardx-api:latest
+```
+
+When new features are merged, the images are automatically updated (via the `push-images.sh` script).
+
+---
 
 ---
 > Generated on 2026-02-20 | NetPulse Dev Team
