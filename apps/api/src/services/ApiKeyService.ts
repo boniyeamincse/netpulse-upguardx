@@ -2,7 +2,10 @@ import crypto from 'crypto'
 import { prisma } from '../lib/prisma'
 
 export class ApiKeyService {
-    static async generateKey(organizationId: string, name: string): Promise<{ id: string; key: string }> {
+    static async generateKey(
+        organizationId: string,
+        name: string
+    ): Promise<{ id: string; key: string; name: string; createdAt: Date; lastUsedAt: Date | null }> {
         const key = `np_${crypto.randomBytes(24).toString('hex')}`
 
         const apiKey = await prisma.apiKey.create({
@@ -13,7 +16,13 @@ export class ApiKeyService {
             },
         })
 
-        return { id: apiKey.id, key }
+        return {
+            id: apiKey.id,
+            key,
+            name: apiKey.name,
+            createdAt: apiKey.createdAt,
+            lastUsedAt: apiKey.lastUsedAt,
+        }
     }
 
     static async validateKey(key: string): Promise<{ organizationId: string } | null> {

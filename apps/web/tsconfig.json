@@ -19,7 +19,8 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@netpulse/types": ["../../packages/types/src/index.ts"]
     }
   },
   "include": [

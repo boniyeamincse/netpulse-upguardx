@@ -1,5 +1,9 @@
 import { prisma } from '../lib/prisma'
 import { AuditService } from './AuditService'
+import { EmailNotificationService } from './EmailNotificationService'
+import { SlackNotificationService } from './SlackNotificationService'
+import { DiscordNotificationService } from './DiscordNotificationService'
+import { WebhookNotificationService } from './WebhookNotificationService'
 
 export class AlertService {
     /**
@@ -56,7 +60,6 @@ export class AlertService {
                     let success = false
 
                     if (rule.alertChannel.type === 'email') {
-                        const { EmailNotificationService } = await import('./EmailNotificationService')
                         success = await EmailNotificationService.sendAlert({
                             email: (rule.alertChannel.config as any).email,
                             monitorName,
@@ -64,11 +67,26 @@ export class AlertService {
                             message: `Monitor "${monitorName}" is now ${status.toUpperCase()}`,
                         })
                     } else if (rule.alertChannel.type === 'slack') {
-                        // TODO: Implement Slack
-                        success = false
+                        success = await SlackNotificationService.sendAlert({
+                            webhookUrl: (rule.alertChannel.config as any).webhookUrl,
+                            monitorName,
+                            status,
+                            message: `Monitor "${monitorName}" is now ${status.toUpperCase()}`,
+                        })
                     } else if (rule.alertChannel.type === 'discord') {
-                        // TODO: Implement Discord
-                        success = false
+                        success = await DiscordNotificationService.sendAlert({
+                            webhookUrl: (rule.alertChannel.config as any).webhookUrl,
+                            monitorName,
+                            status,
+                            message: `Monitor "${monitorName}" is now ${status.toUpperCase()}`,
+                        })
+                    } else if (rule.alertChannel.type === 'webhook') {
+                        success = await WebhookNotificationService.sendAlert({
+                            webhookUrl: (rule.alertChannel.config as any).webhookUrl,
+                            monitorName,
+                            status,
+                            message: `Monitor "${monitorName}" is now ${status.toUpperCase()}`,
+                        })
                     }
 
                     // Update alert log

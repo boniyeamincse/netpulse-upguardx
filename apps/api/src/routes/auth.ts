@@ -5,8 +5,6 @@ import { AuthService } from '../services/AuthService'
 import { AuditService } from '../services/AuditService'
 import { authenticate } from '../middleware/auth'
 import crypto from 'crypto'
-import { authenticator } from 'otplib'
-import QRCode from 'qrcode'
 
 const registerSchema = z.object({
     email: z.string().email(),
@@ -18,6 +16,17 @@ const loginSchema = z.object({
     email: z.string().email(),
     password: z.string(),
 })
+
+const pendingTwoFactorSetups = new Map<string, { userId: string; secret: string; expiresAt: number }>()
+
+const cleanupExpiredTwoFactorSetups = () => {
+    const now = Date.now()
+    for (const [setupToken, pending] of pendingTwoFactorSetups.entries()) {
+        if (pending.expiresAt <= now) {
+            pendingTwoFactorSetups.delete(setupToken)
+        }
+    }
+}
 
 export const authRoutes = async (app: FastifyInstance) => {
     app.post('/register', {
@@ -84,6 +93,106 @@ export const authRoutes = async (app: FastifyInstance) => {
         const token = AuthService.generateToken({ userId: user.id, orgId: user.organizationId, role: user.role })
 
         return { success: true, token, user: { id: user.id, email: user.email, orgId: user.organizationId } }
+    })
+
+    app.get('/me', { preHandler: authenticate }, async (request, reply) => {
+        const userId = (request.user as any)?.userId
+        if (!userId) {
+            return reply.status(401).send({ success: false, message: 'Unauthorized' })
+        }
+
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { id: true, email: true, role: true },
+        })
+
+        if (!user) {
+            return reply.status(404).send({ success: false, message: 'User not found' })
+        }
+
+        return {
+            success: true,
+            user: {
+                id: user.id,
+                name: user.email.split('@')[0],
+                email: user.email,
+                role: user.role,
+            },
+        }
+    })
+
+    app.put('/profile', { preHandler: authenticate }, async (request, reply) => {
+        const userId = (request.user as any)?.userId
+        if (!userId) {
+            return reply.status(401).send({ success: false, message: 'Unauthorized' })
+        }
+
+        const { email } = z
+            .object({
+                name: z.string().optional(),
+                email: z.string().email().optional(),
+            })
+            .parse(request.body)
+
+        const user = await prisma.user.findUnique({ where: { id: userId } })
+        if (!user) {
+            return reply.status(404).send({ success: false, message: 'User not found' })
+        }
+
+        const updated = await prisma.user.update({
+            where: { id: userId },
+            data: { email: email ?? user.email },
+            select: { id: true, email: true, role: true },
+        })
+
+        return {
+            success: true,
+            user: {
+                id: updated.id,
+                name: updated.email.split('@')[0],
+                email: updated.email,
+                role: updated.role,
+            },
+        }
+    })
+
+    app.post('/change-password', { preHandler: authenticate }, async (request, reply) => {
+        const userId = (request.user as any)?.userId
+        if (!userId) {
+            return reply.status(401).send({ success: false, message: 'Unauthorized' })
+        }
+
+        const { currentPassword, newPassword } = z
+            .object({
+                currentPassword: z.string(),
+                newPassword: z.string().min(8),
+            })
+            .parse(request.body)
+
+        const user = await prisma.user.findUnique({ where: { id: userId } })
+        if (!user) {
+            return reply.status(404).send({ success: false, message: 'User not found' })
+        }
+
+        const isValid = await AuthService.comparePassword(currentPassword, user.passwordHash)
+        if (!isValid) {
+            return reply.status(400).send({ success: false, message: 'Current password is incorrect' })
+        }
+
+        const passwordHash = await AuthService.hashPassword(newPassword)
+        await prisma.user.update({
+            where: { id: user.id },
+            data: { passwordHash },
+        })
+
+        await AuditService.log({
+            action: 'PASSWORD_CHANGED',
+            resource: 'user',
+            resourceId: user.id,
+            organizationId: user.organizationId,
+        })
+
+        return { success: true, message: 'Password changed successfully' }
     })
 
     app.post('/forgot-password', async (request, reply) => {
@@ -183,21 +292,21 @@ export const authRoutes = async (app: FastifyInstance) => {
                 return reply.status(400).send({ success: false, message: '2FA is already enabled' })
             }
 
+            cleanupExpiredTwoFactorSetups()
+
             // Generate secret
-            const secret = authenticator.generateSecret()
+            const secret = AuthService.generateTwoFactorSecret()
 
             // Generate QR code
-            const otpauthUrl = authenticator.keyuri(user.email, 'NetPulse', secret)
-            const qrCode = await QRCode.toDataURL(otpauthUrl)
-
-            // Generate backup codes
-            const backupCodes = Array.from({ length: 10 }, () =>
-                crypto.randomBytes(4).toString('hex').toUpperCase()
-            )
+            const qrCode = await AuthService.generateQrCode(user.email, secret)
 
             // Store in session temporarily (expires in 10 minutes)
-            // In production, you'd use Redis or session store
             const setupToken = crypto.randomBytes(32).toString('hex')
+            pendingTwoFactorSetups.set(setupToken, {
+                userId: user.id,
+                secret,
+                expiresAt: Date.now() + 10 * 60 * 1000,
+            })
 
             await AuditService.log({
                 action: '2FA_GENERATION_STARTED',
@@ -208,9 +317,7 @@ export const authRoutes = async (app: FastifyInstance) => {
 
             return {
                 success: true,
-                secret,
                 qrCode,
-                backupCodes,
                 setupToken,
                 expiresIn: 600, // 10 minutes
             }
@@ -226,9 +333,11 @@ export const authRoutes = async (app: FastifyInstance) => {
                 return reply.status(401).send({ success: false, message: 'Unauthorized' })
             }
 
-            const { token, secret } = z.object({
+            cleanupExpiredTwoFactorSetups()
+
+            const { token, setupToken } = z.object({
                 token: z.string().length(6, 'Token must be 6 digits'),
-                secret: z.string(),
+                setupToken: z.string(),
             }).parse(request.body)
 
             const user = await prisma.user.findUnique({ where: { id: userId } })
@@ -236,8 +345,13 @@ export const authRoutes = async (app: FastifyInstance) => {
                 return reply.status(404).send({ success: false, message: 'User not found' })
             }
 
+            const pendingSetup = pendingTwoFactorSetups.get(setupToken)
+            if (!pendingSetup || pendingSetup.userId !== user.id || pendingSetup.expiresAt <= Date.now()) {
+                return reply.status(400).send({ success: false, message: 'Invalid or expired 2FA setup' })
+            }
+
             // Verify token
-            const isValid = authenticator.check(token, secret)
+            const isValid = AuthService.verifyTwoFactorToken(token, pendingSetup.secret)
             if (!isValid) {
                 return reply.status(400).send({ success: false, message: 'Invalid verification code' })
             }
@@ -246,18 +360,16 @@ export const authRoutes = async (app: FastifyInstance) => {
             const backupCodes = Array.from({ length: 10 }, () =>
                 crypto.randomBytes(4).toString('hex').toUpperCase()
             )
-            const backupCodesHash = backupCodes.map(code =>
-                crypto.createHash('sha256').update(code).digest('hex')
-            )
-
             // Enable 2FA
             await prisma.user.update({
                 where: { id: user.id },
                 data: {
                     twoFactorEnabled: true,
-                    twoFactorSecret: secret,
+                    twoFactorSecret: pendingSetup.secret,
                 },
             })
+
+            pendingTwoFactorSetups.delete(setupToken)
 
             await AuditService.log({
                 action: '2FA_ENABLED',

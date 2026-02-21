@@ -1,9 +1,11 @@
 'use client'
 
 import { Sidebar } from '@/components/sidebar'
+import { Header } from '@/components/layout/header'
 import { useAuth } from '@/components/auth-provider'
 import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { cn } from '@/lib/utils'
 
 export default function DashboardLayout({
     children,
@@ -12,6 +14,7 @@ export default function DashboardLayout({
 }) {
     const { user, isLoading } = useAuth()
     const router = useRouter()
+    const [sidebarOpen, setSidebarOpen] = useState(false)
 
     useEffect(() => {
         if (!isLoading && !user) {
@@ -29,10 +32,34 @@ export default function DashboardLayout({
 
     return (
         <div className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden">
-            <div className="hidden lg:flex lg:w-72 lg:flex-col lg:fixed lg:inset-y-0">
+            {/* Desktop sidebar */}
+            <div className="hidden lg:flex lg:w-72 lg:flex-col lg:fixed lg:inset-y-0 z-50">
                 <Sidebar />
             </div>
-            <div className="lg:pl-72 flex flex-col flex-1">
+
+            {/* Mobile sidebar overlay */}
+            {sidebarOpen && (
+                <div className="fixed inset-0 z-40 lg:hidden">
+                    <div
+                        className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm"
+                        onClick={() => setSidebarOpen(false)}
+                    />
+                </div>
+            )}
+
+            {/* Mobile sidebar */}
+            <div
+                className={cn(
+                    "fixed inset-y-0 left-0 z-50 w-72 transform transition-transform duration-300 ease-in-out lg:hidden",
+                    sidebarOpen ? "translate-x-0" : "-translate-x-full"
+                )}
+            >
+                <Sidebar onClose={() => setSidebarOpen(false)} />
+            </div>
+
+            {/* Main content area */}
+            <div className="lg:pl-72 flex flex-col flex-1 overflow-hidden">
+                <Header onMenuClick={() => setSidebarOpen(true)} />
                 <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
                     {children}
                 </main>

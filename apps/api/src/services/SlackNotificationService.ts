@@ -1,5 +1,3 @@
-import axios from 'axios'
-
 export class SlackNotificationService {
     /**
      * Send alert to Slack webhook
@@ -45,8 +43,12 @@ export class SlackNotificationService {
                 ],
             }
 
-            await axios.post(webhookUrl, payload)
-            return true
+            const response = await fetch(webhookUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            })
+            return response.ok
         } catch (error: any) {
             console.error('Slack notification failed:', error.message)
             return false

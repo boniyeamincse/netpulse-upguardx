@@ -1,5 +1,3 @@
-import axios from 'axios'
-
 export class DiscordNotificationService {
     /**
      * Send alert to Discord webhook
@@ -56,8 +54,12 @@ export class DiscordNotificationService {
                 embeds: [embed],
             }
 
-            await axios.post(webhookUrl, payload)
-            return true
+            const response = await fetch(webhookUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            })
+            return response.ok
         } catch (error: any) {
             console.error('Discord notification failed:', error.message)
             return false

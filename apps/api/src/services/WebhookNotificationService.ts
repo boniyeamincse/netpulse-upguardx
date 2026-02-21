@@ -1,5 +1,3 @@
-import axios from 'axios'
-
 export class WebhookNotificationService {
     /**
      * Send alert via custom webhook
@@ -29,16 +27,20 @@ export class WebhookNotificationService {
                 metadata,
             }
 
-            const response = await axios.post(webhookUrl, payload, {
-                timeout: 10000,
+            const controller = new AbortController()
+            const timeout = setTimeout(() => controller.abort(), 10000)
+            const response = await fetch(webhookUrl, {
+                method: 'POST',
+                signal: controller.signal,
                 headers: {
                     'Content-Type': 'application/json',
                     'User-Agent': 'NetPulse/1.0',
                 },
+                body: JSON.stringify(payload),
             })
+            clearTimeout(timeout)
 
-            // Check for successful response
-            return response.status >= 200 && response.status < 300
+            return response.ok
         } catch (error: any) {
             console.error('Webhook notification failed:', error.message)
             return false
@@ -56,11 +58,17 @@ export class WebhookNotificationService {
                 timestamp: new Date().toISOString(),
             }
 
-            const response = await axios.post(webhookUrl, testPayload, {
-                timeout: 10000,
+            const controller = new AbortController()
+            const timeout = setTimeout(() => controller.abort(), 10000)
+            const response = await fetch(webhookUrl, {
+                method: 'POST',
+                signal: controller.signal,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(testPayload),
             })
+            clearTimeout(timeout)
 
-            if (response.status >= 200 && response.status < 300) {
+            if (response.ok) {
                 return { success: true, message: 'Webhook is working correctly' }
             } else {
                 return { success: false, message: `Received status code ${response.status}` }

@@ -3,6 +3,9 @@ import { z } from 'zod'
 import { prisma } from '../lib/prisma'
 import { AlertService } from '../services/AlertService'
 import { EmailNotificationService } from '../services/EmailNotificationService'
+import { SlackNotificationService } from '../services/SlackNotificationService'
+import { DiscordNotificationService } from '../services/DiscordNotificationService'
+import { WebhookNotificationService } from '../services/WebhookNotificationService'
 import { AuditService } from '../services/AuditService'
 import { authenticate } from '../middleware/auth'
 
@@ -16,6 +19,12 @@ const createAlertRuleSchema = z.object({
     monitorId: z.string().uuid(),
     channelId: z.string().uuid(),
     triggerOn: z.enum(['down', 'degraded', 'up']).default('down'),
+})
+
+const updateChannelSchema = z.object({
+    name: z.string().min(1).optional(),
+    config: z.record(z.any()).optional(),
+    isActive: z.boolean().optional(),
 })
 
 export const alertRoutes = async (app: FastifyInstance) => {
@@ -69,10 +78,23 @@ export const alertRoutes = async (app: FastifyInstance) => {
         })
 
         // Remove sensitive config
-        const safeChannels = channels.map(ch => ({
-            ...ch,
-            config: { ...ch.config, password: '***' } // Hide passwords
-        }))
+        const safeChannels = channels.map((ch) => {
+            const config =
+                ch.config && typeof ch.config === 'object' && !Array.isArray(ch.config)
+                    ? ({ ...ch.config } as Record<string, unknown>)
+                    : {}
+
+            for (const key of ['password', 'token', 'apiKey', 'webhookUrl', 'smtpPass']) {
+                if (key in config) {
+                    config[key] = '***'
+                }
+            }
+
+            return {
+                ...ch,
+                config,
+            }
+        })
 
         return { success: true, channels: safeChannels }
     })
@@ -101,6 +123,89 @@ export const alertRoutes = async (app: FastifyInstance) => {
         })
 
         return { success: true }
+    })
+
+    app.get<{ Params: { id: string } }>('/alert-channels/:id', async (request, reply) => {
+        const organizationId = (request as any).user?.orgId
+        const { id } = request.params
+
+        const channel = await prisma.alertChannel.findFirst({
+            where: { id, organizationId },
+        })
+
+        if (!channel) {
+            return reply.status(404).send({ success: false, message: 'Channel not found' })
+        }
+
+        return { success: true, channel }
+    })
+
+    app.put<{ Params: { id: string } }>('/alert-channels/:id', async (request, reply) => {
+        const organizationId = (request as any).user?.orgId
+        const { id } = request.params
+        const data = updateChannelSchema.parse(request.body)
+
+        const channel = await prisma.alertChannel.findFirst({
+            where: { id, organizationId },
+        })
+
+        if (!channel) {
+            return reply.status(404).send({ success: false, message: 'Channel not found' })
+        }
+
+        const updated = await prisma.alertChannel.update({
+            where: { id },
+            data,
+        })
+
+        return { success: true, channel: updated }
+    })
+
+    app.post<{ Params: { id: string } }>('/alert-channels/:id/test', async (request, reply) => {
+        const organizationId = (request as any).user?.orgId
+        const { id } = request.params
+
+        const channel = await prisma.alertChannel.findFirst({
+            where: { id, organizationId },
+        })
+
+        if (!channel) {
+            return reply.status(404).send({ success: false, message: 'Channel not found' })
+        }
+
+        const cfg = (channel.config as any) || {}
+        let success = false
+
+        if (channel.type === 'email') {
+            success = await EmailNotificationService.testConnection(cfg.email, cfg)
+        } else if (channel.type === 'slack') {
+            success = await SlackNotificationService.sendAlert({
+                webhookUrl: cfg.webhookUrl,
+                monitorName: 'Test Monitor',
+                status: 'up',
+                message: 'Test alert from NetPulse',
+            })
+        } else if (channel.type === 'discord') {
+            success = await DiscordNotificationService.sendAlert({
+                webhookUrl: cfg.webhookUrl,
+                monitorName: 'Test Monitor',
+                status: 'up',
+                message: 'Test alert from NetPulse',
+            })
+        } else if (channel.type === 'webhook') {
+            success = await WebhookNotificationService.sendAlert({
+                webhookUrl: cfg.webhookUrl,
+                monitorName: 'Test Monitor',
+                status: 'up',
+                message: 'Test alert from NetPulse',
+            })
+        }
+
+        if (!success) {
+            return reply.status(400).send({ success: false, message: 'Failed to send test notification' })
+        }
+
+        return { success: true, message: 'Test notification sent successfully' }
     })
 
     // Create alert rule
